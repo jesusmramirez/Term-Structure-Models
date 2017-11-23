@@ -7,14 +7,93 @@ Created on Thu Nov  2 16:51:19 2017
 
 import sys
 sys.path.insert(0, 'isda_daycounters/')
-import thirty360
+import thirty360, actual360
 import numpy as np
-from simple_bond import Bond
+from simple_bond import Bond, ZCBond
 
 
 class SimpleDerivative(object):
     """
-    Representation of a simple derivative product such as European or Bermudan 
+    Representation of a simple derivative product such as Caplet or Floor
+    
+    """
+    
+    
+    def __init__(self, payment_dates, payment_steps, reset_dates, reset_steps):
+        """
+        Initialize a SimpleDerivative object
+        
+        Parameters
+        ----------
+            payment_dates : array_like of shape (1, ) with datetime payment 
+                dates
+            payment_steps : array_like of shape (1, ) with integer payment 
+                steps that corresponds to the tree
+            exercise_dates : array_like of shape (1, ) with datetime exercise 
+                dates
+            exercise_steps : array_like of shape (1, ) with integer exercise 
+                steps that corresponds to the tree
+
+        """
+        self._payment_date = payment_dates
+        self._payment_step = payment_steps
+        self._reset_date = reset_dates
+        self._reset_step = reset_steps
+        self._steps = reset_steps[len(reset_steps) - 1]
+        self._the_tree = {}
+        
+#    def discounted_expected_value(self)
+        
+    def get_price(self, hw_tree, payoff):
+        """
+        This function computes the derivative price
+        
+        Parameters
+        ----------
+            hw_tree: a HWTree class instance
+            bond: a Bond class instance
+            payoff: a PayOff class instance
+        
+        Return
+        ------
+            out: float scalar that specifies the derivative price
+        
+        """
+        # Build the HW tree and construct the underlying tree
+        
+        bond = ZCBond(self._payment_date, self._payment_step)
+        bond.get_price(hw_tree)
+        
+        # construct the derivative tree
+        for i in reversed(range(self._steps + 1)):
+            for j in range(-i, i + 1):
+                # if this is the first exercise node, then set the 
+                # derivative payoff
+                if i == self._steps:
+                    price = bond._bond_tree[i, j]
+                    tau = actual360.year_fraction(self._reset_date[0], self._payment_date[0])
+                    self._the_tree[i, j] = payoff(price, tau)
+                    continue
+                
+                # else, compute the discounted expected value (continuation value)
+                else:
+                    continuation_value = 0
+                    for k in range(j - 2, j + 3):
+                        if k <= i + 1 and k >= -i - 1:
+                            continuation_value += hw_tree.prob(j, k)*self._the_tree[i + 1, k]
+                        else:
+                            continue
+                    continuation_value *= hw_tree._discount_factor_tree[i, j]
+                    
+
+                    self._the_tree[i, j] = continuation_value
+
+        return self._the_tree[0, 0]
+
+
+class SimpleSwaption(object):
+    """
+    Representation of a simple swaption product such as European or Bermudan 
     Swaption
     
     """
@@ -22,7 +101,7 @@ class SimpleDerivative(object):
     
     def __init__(self, payment_dates, payment_steps, exercise_dates, exercise_steps, frequency=2):
         """
-        Initialize a SimpleDerivative object
+        Initialize a SimpleSwaption object
         
         Parameters
         ----------
@@ -181,8 +260,8 @@ class CallableBond(object):
                         # value and the call value is the face value plus accrued
                         # interest
                         else:
-                            e_index = bond._exercise_steps.tolist().index(i)
-                            accrued_interest = coupon_rate*thirty360(self._payment_dates[index - 1], self._exercise_dates[e_index])
+                            e_index = self._exercise_steps.tolist().index(i)
+                            accrued_interest = coupon_rate*thirty360.year_fraction(self._payment_dates[index - 1], self._exercise_dates[e_index])
                             continuation_value = discounted_expected_value
                             call_value = face_value + accrued_interest
                             self._the_tree[i, j] = min(continuation_value, call_value)
