@@ -1,2 +1,2 @@
-# Term-Structure-Models
-Basic tools for Term Structure Models
+# Stripping Algorithm
+This is a simple version of the so-called stripping algorithm. This algorithm allows you to back out caplet volatilities from cap volatilities. When you want to calibrate your own Black-Derman-Toy (BDT) tree model or LIBOR Market Model (LMM) you will realize that you need those caplet volatilities. Aside, for Hull-White (HW), you do not need to strip the cap volatilities, but you need to calibrate two parameters (speed of mean reversion and the constant volatility of the spot rate) before you calibrate your HW tree model.
