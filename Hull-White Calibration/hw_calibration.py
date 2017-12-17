@@ -56,9 +56,9 @@ class HWModel(object):
         cons = ({'type': 'ineq',
                'fun': lambda x: x[0] - EPSILON})
         
-        if method=='SLSQP':
-            # Sequential Least SQuares Programming (SLSQP)
-            return minimize(func, initial, constraints=cons, method='SLSQP', options={'disp': True})
-        else:
-            print('Please, introduce a valid method')
-            return None
+
+        # Sequential Least SQuares Programming (SLSQP)
+        result = minimize(func, initial, constraints=cons, method='SLSQP', options={'disp': True})
+        self._a = result.x[0]
+        self._sigma = result.x[1]
+        return result

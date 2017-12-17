@@ -6,7 +6,10 @@ Created on Thu Nov  2 16:51:19 2017
 """
 
 import sys
-sys.path.insert(0, 'isda_daycounters/')
+import os
+path = os.getcwd() + '/isda_daycounters/'
+#print(path)
+sys.path.insert(0, path)
 import thirty360, actual360
 import numpy as np
 from simple_bond import Bond, ZCBond
@@ -119,7 +122,7 @@ class SimpleSwaption(object):
         self._payment_steps = payment_steps
         self._exercise_dates = exercise_dates
         self._exercise_steps = exercise_steps
-        self._steps = exercise_steps[len(exercise_steps) - 1]        
+        self._steps = int(exercise_steps[len(exercise_steps) - 1])
         self._frequency = frequency
         self._the_tree = {}
         
@@ -243,7 +246,6 @@ class CallableBond(object):
                             continue
                             
                     discounted_expected_value *= hw_tree._discount_factor_tree[i, j]
-                    
                     # if this is an exercise node
                     if i in self._exercise_steps.tolist():
                         # and a payment node, compute the continuation value
@@ -260,6 +262,8 @@ class CallableBond(object):
                         # value and the call value is the face value plus accrued
                         # interest
                         else:
+                            index = abs(bond._payment_steps[::-1]-39).argmin() # TODO this thing
+                            coupon_rate = bond._coupon_rates[index]
                             e_index = self._exercise_steps.tolist().index(i)
                             accrued_interest = coupon_rate*thirty360.year_fraction(self._payment_dates[index - 1], self._exercise_dates[e_index])
                             continuation_value = discounted_expected_value

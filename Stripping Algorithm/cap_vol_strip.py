@@ -175,7 +175,7 @@ class CapVolStrip(object):
         
         """
         num_stripped_vol = self._num_obs
-        self._caplet_vols = self._interpolated_cap_vols
+        self._caplet_vols = self._interpolated_cap_vols.copy()
         # stripping algorith
         for i in range(1, num_stripped_vol):
             # bisection method procedure 
